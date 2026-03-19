@@ -50,29 +50,29 @@ static void *helper_function(void* a)
   for (int i = args->start; i < args->start + increBy; i++)
   {
     char current_c = args->input_chars[i];
+    fprintf(stderr, "%c", current_c);
     // fprintf(stderr, "%c", current_c);
     if (previous_c == current_c)
     {
       // fprintf(stderr, "+1");
-      for (int j = 0; j < increBy; j++) {
+      for (int j = increBy - 1; j >= 0; j--) {
         // fprintf(stderr, "%c", temp_chars[temp_chars_index].character);
         if (temp_chars[j].character == current_c)
         {
           temp_chars[j].occurence++;
+          break;
         }
       }
     }
     else
     {
-      // fprintf(stderr, " new ");
       previous_c = current_c;
-      // fprintf(stderr, "%c", current_c);
       temp_chars[temp_chars_index].character = current_c;
-      // fprintf(stderr, "%c", temp_chars[temp_chars_index].character);
       temp_chars[temp_chars_index].occurence = 1;
       temp_chars_index++;
     }
   }
+  fprintf(stderr, "\n");
   pthread_barrier_wait(&barrier);
 
   pthread_mutex_unlock(&lock[lock_index]);
@@ -81,11 +81,11 @@ static void *helper_function(void* a)
   {
     args->zipped_chars[zipped_chars_index] = temp_chars[i];
     args->char_frequency[args->zipped_chars[zipped_chars_index].character - 'a'] += args->zipped_chars[zipped_chars_index].occurence;
+    // fprintf(stderr, "%i\n", args->zipped_chars[zipped_chars_index].occurence);
     zipped_chars_index++;
   }
   lock_index++;
   pthread_mutex_unlock(&lock[lock_index]);
-  // free(args);
   pthread_exit(NULL);
 }
 
@@ -115,6 +115,6 @@ void pzip(int n_threads, char *input_chars, int input_chars_size,
     pthread_join(thread_ids[i], &result);
   }
   free(lock);
+  pthread_barrier_destroy(&barrier);
   *zipped_chars_count = zipped_chars_index;
-
 }
