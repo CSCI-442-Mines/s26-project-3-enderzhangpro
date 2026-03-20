@@ -44,25 +44,18 @@ static void *helper_function(void* a)
 {
   struct Args *args = (struct Args*) a;
   char previous_c = 'A';
-  struct zipped_char temp_chars[increBy];
+  struct zipped_char *temp_chars = malloc(sizeof(struct zipped_char) * increBy);
   int temp_chars_index = 0;
-  // fprintf(stderr, "Start");
+  // fprintf(stderr, "Start\n");
+  // fprintf(stderr, "%d\n", args->start);
+  // fprintf(stderr, "%d\n", args->start + increBy);
   for (int i = args->start; i < args->start + increBy; i++)
   {
     char current_c = args->input_chars[i];
-    fprintf(stderr, "%c", current_c);
     // fprintf(stderr, "%c", current_c);
     if (previous_c == current_c)
     {
-      // fprintf(stderr, "+1");
-      for (int j = increBy - 1; j >= 0; j--) {
-        // fprintf(stderr, "%c", temp_chars[temp_chars_index].character);
-        if (temp_chars[j].character == current_c)
-        {
-          temp_chars[j].occurence++;
-          break;
-        }
-      }
+      temp_chars[temp_chars_index - 1].occurence++;
     }
     else
     {
@@ -72,7 +65,7 @@ static void *helper_function(void* a)
       temp_chars_index++;
     }
   }
-  fprintf(stderr, "\n");
+  // fprintf(stderr, "\n");
   pthread_barrier_wait(&barrier);
 
   pthread_mutex_unlock(&lock[lock_index]);
@@ -86,6 +79,8 @@ static void *helper_function(void* a)
   }
   lock_index++;
   pthread_mutex_unlock(&lock[lock_index]);
+  free(temp_chars);
+  // fprintf(stderr, "Over");
   pthread_exit(NULL);
 }
 
@@ -97,17 +92,18 @@ void pzip(int n_threads, char *input_chars, int input_chars_size,
   pthread_barrier_init(&barrier, NULL, n_threads);
   lock = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t) * n_threads);
   increBy = input_chars_size / n_threads;
+  // fprintf(stderr, "%d\n\n", increBy);
+  struct Args* argsArr = malloc(sizeof(struct Args) * n_threads);
   for (int i = 0; i < n_threads; i++)
   {
-    struct Args* args = malloc(sizeof(struct Args));
-    args->input_chars = input_chars;
-    args->input_chars_size = input_chars_size;
-    args->start = i * increBy;
-    args->zipped_chars = zipped_chars;
-    args->char_frequency = char_frequency;
+    argsArr[i].input_chars = input_chars;
+    argsArr[i].input_chars_size = input_chars_size;
+    argsArr[i].start = i * increBy;
+    argsArr[i].zipped_chars = zipped_chars;
+    argsArr[i].char_frequency = char_frequency;
     pthread_mutex_init(&lock[i], NULL);
     pthread_mutex_lock(&lock[i]);
-    pthread_create(&thread_ids[i], NULL, helper_function, (void*) args);
+    pthread_create(&thread_ids[i], NULL, helper_function, (void*) &argsArr[i]);
   }
   for (int i = 0; i < n_threads; i++)
   {
@@ -115,6 +111,7 @@ void pzip(int n_threads, char *input_chars, int input_chars_size,
     pthread_join(thread_ids[i], &result);
   }
   free(lock);
+  // free(argsArr);
   pthread_barrier_destroy(&barrier);
   *zipped_chars_count = zipped_chars_index;
 }
